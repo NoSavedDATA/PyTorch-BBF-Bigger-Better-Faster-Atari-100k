@@ -7,10 +7,9 @@ import numpy as np
 
 from collections import namedtuple, deque
 from itertools import count
-
+import random
 
 import threading
-from concurrent.futures import ThreadPoolExecutor
 
 import math
 
@@ -82,7 +81,7 @@ def preprocess_replay(x):
 
 
 class PrioritizedReplay_nSteps_Sqrt(object):
-    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8):
+    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8, W=5, K=3):
         self.capacity = capacity
         self.memory = deque([],maxlen=capacity)
         self.total_steps=total_steps
@@ -90,10 +89,12 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         self.initial_beta=initial_beta
         self.final_beta=final_beta
         
+
+        self.K  = K
+        self.W  = W
+        self.Ws = [w for w in list(range(-W,W+1)) if w!=0]
         
         self.free()
-        
-
     def push(self, *args):
         """Save a transition"""
         self.memory.append(Transition(*args))
@@ -102,7 +103,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
 
     def prioritize(self, batch_size, seq_len, step):
         with torch.no_grad():
-            max_n = int(self.n -seq_len -5 -1)
+            max_n = int(self.n -20)
 
             priority = self.priority.clone()[:max_n].pow(0.5)
             probs = priority/priority.sum()
@@ -112,22 +113,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             idxs = torch.randint(0, segment_length, (batch_size,))
             idx = idxs + torch.arange(batch_size)*segment_length
             idx = sorted_priorities[idx]
-            '''
-            idx=[]
-            for i in range(batch_size):
-                segment_length=(max_n//batch_size)
-                lower_bound=segment_length*i
-                upper_bound=segment_length*(i+1)
-                
-                _probs = (priority[sorted_priorities[lower_bound:upper_bound]]+eps)
-                _probs = probs/probs.sum()
-                
-                idx.append(sorted_priorities[lower_bound:upper_bound][torch.multinomial(_probs, 1)])
-                
-            
-                #idx.append(torch.multinomial(probs, 1)+lower_bound)
-            idx=torch.stack(idx).squeeze()
-            '''
+
             
             #beta  = self.final_beta + 0.5 * (self.initial_beta - self.final_beta) *\
             #    (1 + math.cos(math.pi * (min(step,self.total_steps) / self.total_steps)))
@@ -142,17 +128,29 @@ class PrioritizedReplay_nSteps_Sqrt(object):
     
     def sample(self, seq_len, batch_size, step):
         
-        states, action, rewards, c_flag, idxs = [], [], [], [], []
+        states, action, rewards, c_flag, idxs, taco_transitions, same_traj_taco = [], [], [], [], [], [], []
         
         idxs, is_ws = self.prioritize(batch_size, seq_len, step)
         for idx in idxs:
-            batch = Transition(*zip(*list([self.memory[int(i+idx)] for i in range(max(seq_len+1,5+1))])))
+            #
+            batch = Transition(*zip(*list([self.memory[int(idx+i)] for i in range(max(seq_len+1,6))])))
             
             states.append(torch.stack(batch.state).squeeze(1).cuda())
             
             rewards.append(torch.tensor(np.array(batch.reward), dtype=torch.float, device='cuda'))
             action.append(torch.stack(batch.action).cuda())
             c_flag.append((~torch.tensor(np.array(batch.c_flag), device='cuda')).float())
+
+            #
+            w = random.choice(self.Ws) + self.K
+            taco_transitions.append(torch.stack(Transition(*zip(self.memory[int(idx+w)])).state).squeeze().cuda())
+            
+            if w<self.K:
+                same_traj_idxs = list(range(max(0,idx+w), idx+self.K))
+            else:
+                same_traj_idxs = list(range(idx+self.K, idx+w))
+            same_traj_taco_transitions = Transition(*zip(*list([self.memory[int(_idx)] for _idx in same_traj_idxs])))
+            same_traj_taco.append((~torch.tensor(np.array(same_traj_taco_transitions.c_flag), device='cuda')).prod())
         
 
         states = torch.stack(states)
@@ -160,13 +158,17 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         states = preprocess_replay(states)
         next_states = preprocess_replay(next_states)
         
+        taco_transitions = torch.stack(taco_transitions)
+        taco_transitions = preprocess_replay(taco_transitions[:,None])
+        
         rewards = torch.stack(rewards)
         action = torch.stack(action)
         c_flag = torch.stack(c_flag)
+        same_traj_taco = torch.stack(same_traj_taco)
         is_ws = is_ws.cuda()
             
         
-        return states, next_states, rewards, action, c_flag, idxs, is_ws#, self.priority[idxs]
+        return states, next_states, rewards, action, c_flag, idxs, is_ws, taco_transitions, same_traj_taco#, self.priority[idxs]
     
 
     
