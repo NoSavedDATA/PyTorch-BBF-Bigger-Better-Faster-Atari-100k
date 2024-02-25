@@ -2,6 +2,7 @@ Unofficial code for "Bigger, Better, Faster: Human-level Atari with human-level 
 
 Possible replication of the Atari 100k results.
 
+<hr>
 
 Current results:
 
@@ -13,8 +14,19 @@ BankHeist - 509.0 IQM - 603.2 Mean Score (Seed 8012)
 
 BattleZone - 29620.0 IQM - 30610.0 Mean Score (Seed 8234)
 
+Boxing - 97.0 IQM - 96.74 Mean Score (Seed 7800)
+
+Breakout - IQM - Mean Score (Seed 7803)
+
+Chopper Command - 299.0 IQM - 292.09 Mean Score (Seed 8907)
+
 Experiments were runned over 100 eval seeds for 1 training seed.
 
+<br>
+
+Few modifications were made at the code during these reports, so the results before BattleZone can be inconsistent. I will update results for Alien, Assault and BankHeist later.
+
+<br>
 
 1 environment training takes 7 hours and a few minutes on a 4090.
 
