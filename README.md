@@ -16,9 +16,9 @@ BattleZone - 29620.0 IQM - 30610.0 Mean Score (Seed 8234)
 
 Boxing - 97.0 IQM - 96.74 Mean Score (Seed 7800)
 
-Breakout - IQM - Mean Score (Seed 7803)
+Breakout - 299.0  IQM - 292.09 Mean Score (Seed 7803)
 
-Chopper Command - 299.0 IQM - 292.09 Mean Score (Seed 8907)
+Chopper Command - IQM -  Mean Score (Seed 8907)
 
 Experiments were runned over 100 eval seeds for 1 training seed.
 
