@@ -32,7 +32,7 @@ Gopher - 200.0 IQM - 250.0 Mean Score (Seed 8264) n-1
 
 Hero - 3020.0 IQM - 3040.0 Mean Score (Seed 8048) n-1
 
-Jamesbond -  IQM -  Mean Score (Seed 8052) n-1
+Jamesbond - 299.0 IQM - 427.5 Mean Score (Seed 8052) n-1
 
 Kangaroo -  IQM -  Mean Score (Seed 8712) n-1
 
