@@ -6,29 +6,46 @@ Possible replication of the Atari 100k results.
 
 Current results:
 
-Alien - 1184.4 IQM - 1184.5 Mean Score (seed 7779)
+Alien - 1184.4 IQM - 1184.5 Mean Score (seed 7779) n-1
 
-Assault - 1905.32 IQM - 1918.73 Mean Score (seed 7783)
+Assault - 1905.32 IQM - 1918.73 Mean Score (seed 7783) n-1
 
-BankHeist - 509.0 IQM - 603.2 Mean Score (Seed 8012)
+BankHeist - 509.0 IQM - 603.2 Mean Score (Seed 8012) n-1
 
-BattleZone - 29620.0 IQM - 30610.0 Mean Score (Seed 8234)
+BattleZone - 29620.0 IQM - 30610.0 Mean Score (Seed 8234) n
 
-Boxing - 97.0 IQM - 96.74 Mean Score (Seed 7800)
+Boxing - 97.0 IQM - 96.74 Mean Score (Seed 7800) n
 
-Breakout - 299.0  IQM - 292.09 Mean Score (Seed 7803)
+Breakout - 299.0  IQM - 292.09 Mean Score (Seed 7803) n
 
-Chopper Command - IQM -  Mean Score (Seed 8907)
+Chopper Command - 5120.0 IQM - 4876.0 Mean Score (Seed 8907) n
+
+Crazy Climber - 16100.0 IQM - 16955.0 Mean Score (Seed 8908) n-1
+
+Demon Attack - 13387.2 IQM - 14651.75 Mean Score (Seed 7811) n-1
+
+Freeway - 24.0 IQM - 24.03 Mean Score (Seed 8259) n-1
+
+Frostbite - 253.7 IQM - 257.4 Mean Score (Seed 8262) n-1
+
+Gopher - 200.0 IQM - 250.0 Mean Score (Seed 8264) n-1
+
+Hero - 3020.0 IQM - 3040.0 Mean Score (Seed 8048) n-1
+
+Jamesbond -  IQM -  Mean Score (Seed 8052) n-1
+
+Kangaroo -  IQM -  Mean Score (Seed 8712) n-1
+
+
+
+
 
 Experiments were runned over 100 eval seeds for 1 training seed.
 
-<br>
-
-Few modifications were made at the code during these reports, so the results before BattleZone can be inconsistent. I will update results for Alien, Assault and BankHeist later.
 
 <br>
 
-1 environment training takes 7 hours and a few minutes on a 4090.
+1 environment training takes 6 hours and a few minutes on a 4090.
 
 <hr>
 
