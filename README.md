@@ -36,8 +36,23 @@ Jamesbond - 299.0 IQM - 427.5 Mean Score (Seed 8052) n-1
 
 Kangaroo -  IQM -  Mean Score (Seed 8712) n-1
 
+Krull - IQM - Mean Score (Seed 8494)
 
+KungFuMaster - IQM - Mean Score (Seed 8277)
 
+MsPacman - IQM - Mean Score (Seed 8281)
+
+Pong - IQM - Mean Score (Seed 8289)
+
+PrivateEye - IQM - Mean Score (Seed 8291)
+
+Qbert - IQM - Mean Score (Seed 8953)
+
+Roadrunner - IQM - Mean Score (Seed 8736)
+
+Seaquest - IQM - Mean Score (Seed 8082)
+
+UpNDown - IQM - Mean Score (Seed 8098)
 
 
 Experiments were runned over 100 eval seeds for 1 training seed.
