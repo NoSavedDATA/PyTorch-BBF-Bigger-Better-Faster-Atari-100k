@@ -1,0 +1,3 @@
+ Scores Mean 1977.31
+ Inter Quantile Mean 2013.12
+ Inter Quantile STD 371.49469960786064
