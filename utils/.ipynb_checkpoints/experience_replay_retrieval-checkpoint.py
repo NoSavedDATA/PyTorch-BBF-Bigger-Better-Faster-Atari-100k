@@ -114,6 +114,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             idx = sorted_priorities[idx]
 
             is_w = (1/(probs*max_n+eps)).pow(0.5)
+            
             is_w/=is_w.max()
             
             return idx, is_w[idx]
@@ -150,6 +151,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
 
     
     def set_priority(self, idxs, priority, same_traj):
+        
         for i, idx in enumerate(idxs):
             if same_traj[i]==1:
                 self.priority[idx] = torch.max(_eps, priority[i].detach())

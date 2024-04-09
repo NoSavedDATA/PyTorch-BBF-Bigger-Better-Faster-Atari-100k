@@ -112,29 +112,8 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             idxs = torch.randint(0, segment_length, (batch_size,))
             idx = idxs + torch.arange(batch_size)*segment_length
             idx = sorted_priorities[idx]
-            '''
-            idx=[]
-            for i in range(batch_size):
-                segment_length=(max_n//batch_size)
-                lower_bound=segment_length*i
-                upper_bound=segment_length*(i+1)
-                
-                _probs = (priority[sorted_priorities[lower_bound:upper_bound]]+eps)
-                _probs = probs/probs.sum()
-                
-                idx.append(sorted_priorities[lower_bound:upper_bound][torch.multinomial(_probs, 1)])
-                
-            
-                #idx.append(torch.multinomial(probs, 1)+lower_bound)
-            idx=torch.stack(idx).squeeze()
-            '''
-            
-            #beta  = self.final_beta + 0.5 * (self.initial_beta - self.final_beta) *\
-            #    (1 + math.cos(math.pi * (min(step,self.total_steps) / self.total_steps)))
-            #is_w = (1/((probs*self.n)+eps)).pow(beta)
-            
+
             is_w = (1/(probs*max_n+eps)).pow(0.5)
-            #is_w = (1/(probs*self.capacity+eps)).pow(0.5)
             is_w/=is_w.max()
             
             return idx, is_w[idx]
@@ -150,9 +129,9 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             
             states.append(torch.stack(batch.state).squeeze(1).cuda())
             
-            rewards.append(torch.tensor(np.array(batch.reward), dtype=torch.float, device='cuda'))
+            rewards.append(torch.stack(batch.reward).cuda())
             action.append(torch.stack(batch.action).cuda())
-            c_flag.append((~torch.tensor(np.array(batch.c_flag), device='cuda')).float())
+            c_flag.append((~torch.stack(batch.c_flag).cuda()).float())
         
 
         states = torch.stack(states)
@@ -166,17 +145,14 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         is_ws = is_ws.cuda()
             
         
-        return states, next_states, rewards, action, c_flag, idxs, is_ws#, self.priority[idxs]
+        return states, next_states, rewards, action, c_flag, idxs, is_ws
     
 
     
     def set_priority(self, idxs, priority, same_traj):
-        #self.priority[idx] = torch.max(_eps, priority.detach()+returns.mean())
         for i, idx in enumerate(idxs):
             if same_traj[i]==1:
                 self.priority[idx] = torch.max(_eps, priority[i].detach())
-        #if same_traj==1:
-        #    self.priority[idx] = torch.max(_eps, priority.detach())
     
 
     def max_priority(self):
