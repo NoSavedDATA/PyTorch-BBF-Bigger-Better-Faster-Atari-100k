@@ -16,10 +16,37 @@ import math
 
 
 Transition = namedtuple('Transition',
-                        ('state', 'reward', 'action', 'c_flag'))
+                        ('state', 'reward', 'action', 'c_flag', 'used_quant'))
+
+VQ_State = namedtuple('VQ_State',
+                        ('state', 'returns', 'action'))
+
 
 eps=1e-10
 _eps = torch.tensor(eps, device='cuda')
+
+
+def get_highest_l1_vectors(vectors, ammount=256):
+    distances = torch.cdist(vectors, vectors)
+    
+    # Initialize a list to store the sampled indices
+    sampled_indices = []
+    
+    # Start by randomly selecting the first index
+    sampled_indices.append(torch.randint(0, vectors.size(0), (1,)).item())
+    
+    # Repeat until you have sampled 3 vectors
+    while len(sampled_indices) < ammount:
+        # Compute the distances from the already sampled vectors to all others
+        sampled_distances = distances[sampled_indices, :].min(dim=0).values
+        
+        # Select the index with the maximum distance as the next sampled index
+        next_index = sampled_distances.argmax().item()
+        # Add the index to the list of sampled indices
+        sampled_indices.append(next_index)
+    
+    # Extract the sampled vectors
+    return vectors[sampled_indices], sampled_indices
 
 
 
@@ -82,8 +109,9 @@ def preprocess_replay(x):
 
 
 class PrioritizedReplay_nSteps_Sqrt(object):
-    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8):
+    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8, cluster_size=256):
         self.capacity = capacity
+        self.cluster_size = cluster_size
         self.memory = deque([],maxlen=capacity)
         self.total_steps=total_steps
 
@@ -121,17 +149,19 @@ class PrioritizedReplay_nSteps_Sqrt(object):
     
     def sample(self, seq_len, batch_size, step):
         
-        states, action, rewards, c_flag, idxs = [], [], [], [], []
+        states, action, rewards, c_flag, used_quant, idxs = [], [], [], [], [], []
         
         idxs, is_ws = self.prioritize(batch_size, seq_len, step)
         for idx in idxs:
-            batch = Transition(*zip(*list([self.memory[int(i+idx)] for i in range(max(seq_len+1,5+1))])))
+            batch = Transition(*zip(*list([self.memory[int(i+idx)] for i in range(max( int(seq_len*1.5), 5+1 ))])))
             
             states.append(torch.stack(batch.state).squeeze(1).cuda())
             
             rewards.append(torch.stack(batch.reward).cuda())
             action.append(torch.stack(batch.action).cuda())
             c_flag.append((~torch.stack(batch.c_flag).cuda()).float())
+            used_quant.append(batch.used_quant[0].cuda())
+            
         
 
         states = torch.stack(states)
@@ -142,10 +172,47 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         rewards = torch.stack(rewards)
         action = torch.stack(action)
         c_flag = torch.stack(c_flag)
+        used_quant = torch.stack(used_quant)
         is_ws = is_ws.cuda()
             
         
-        return states, next_states, rewards, action, c_flag, idxs, is_ws
+        return states, next_states, rewards, action, c_flag, used_quant, idxs, is_ws
+
+    
+    def prepare_vq(self, model, n=8):
+        with torch.no_grad():
+            vq_db = deque([],maxlen=self.capacity)
+            
+            for idx in range(self.n-n-1):
+                batch = Transition(*zip(*list([self.memory[int(i+idx)] for i in range(n)])))
+    
+                state, _ = model.encode(batch.state[0].squeeze()[None,None,:].cuda())
+                state = state.cpu().squeeze()
+                
+                
+                rewards = torch.stack(batch.reward)
+                action = torch.stack(batch.action)
+                c_flag = (~torch.stack(batch.c_flag)).float()
+    
+                returns = rewards*(c_flag.cumprod(0))
+                if returns.sum()>0:
+                    vq_db.append(VQ_State(state, returns.squeeze(), action))
+    
+            
+            if len(vq_db)>self.cluster_size:
+                new_db = deque([],maxlen=self.capacity)
+                
+                db = VQ_State(*zip(*list(vq_db)))
+                states = torch.stack(db.state)
+                
+                _, sampled_indices = get_highest_l1_vectors(states, self.cluster_size)
+    
+                for idx in sampled_indices:
+                    new_db.append(VQ_State(db.state[idx], db.returns[idx], db.action[idx]))
+                vq_db = new_db
+                
+            #print(f"len vq db: {len(vq_db)}")
+            return vq_db
         
     
     def set_priority(self, idxs, priority, same_traj):

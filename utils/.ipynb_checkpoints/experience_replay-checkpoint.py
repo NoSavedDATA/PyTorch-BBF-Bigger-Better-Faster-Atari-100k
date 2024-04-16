@@ -146,8 +146,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             
         
         return states, next_states, rewards, action, c_flag, idxs, is_ws
-    
-
+        
     
     def set_priority(self, idxs, priority, same_traj):
         for i, idx in enumerate(idxs):
