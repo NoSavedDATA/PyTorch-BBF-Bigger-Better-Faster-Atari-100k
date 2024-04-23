@@ -82,13 +82,13 @@ def preprocess_replay(x):
 
 
 class PrioritizedReplay_nSteps_Sqrt(object):
-    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8):
+    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8, alpha=0.5, beta=0.5):
         self.capacity = capacity
         self.memory = deque([],maxlen=capacity)
         self.total_steps=total_steps
 
-        self.initial_beta=initial_beta
-        self.final_beta=final_beta
+        self.alpha=alpha
+        self.beta=beta
         
         
         self.free()
@@ -104,7 +104,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         with torch.no_grad():
             max_n = int(self.n -seq_len -5 -1)
 
-            priority = self.priority.clone()[:max_n].pow(0.5)
+            priority = self.priority.clone()[:max_n].pow(self.alpha)
             probs = priority/priority.sum()
             _, sorted_priorities = priority.sort()
 
@@ -113,7 +113,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
             idx = idxs + torch.arange(batch_size)*segment_length
             idx = sorted_priorities[idx]
 
-            is_w = (1/(probs*max_n+eps)).pow(0.5)
+            is_w = (1/(probs*max_n+eps)).pow(self.beta)
             is_w/=is_w.max()
             
             return idx, is_w[idx]

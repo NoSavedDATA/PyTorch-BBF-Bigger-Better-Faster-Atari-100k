@@ -203,9 +203,10 @@ class PrioritizedReplay_nSteps_Sqrt(object):
                 new_db = deque([],maxlen=self.capacity)
                 
                 db = VQ_State(*zip(*list(vq_db)))
-                states = torch.stack(db.state)
+                #states = torch.stack(db.state)
+                actions = torch.stack(db.action)
                 
-                _, sampled_indices = get_highest_l1_vectors(states, self.cluster_size)
+                _, sampled_indices = get_highest_l1_vectors(actions.float(), self.cluster_size)
     
                 for idx in sampled_indices:
                     new_db.append(VQ_State(db.state[idx], db.returns[idx], db.action[idx]))

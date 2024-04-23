@@ -5,21 +5,34 @@ from torch.distributions.categorical import Categorical
 
 import numpy as np
 
+import time
+
 from collections import namedtuple, deque
 from itertools import count
 
 
-import threading
-from concurrent.futures import ThreadPoolExecutor
+
+from nosaveddata.nsd_utils.save_hypers import Hypers
+from nosaveddata.builders.efficientzero import *
+
+from nosaveddata.nsd_utils.bbf import network_ema
+
+
 
 import math
+from ray.util.queue import Queue
+import ray
+
+
+
+
 
 
 Transition = namedtuple('Transition',
                         ('state', 'reward', 'action', 'c_flag'))
 
 eps=1e-10
-_eps = torch.tensor(eps, device='cuda')
+_eps = torch.tensor(eps)#, device='cuda')
 
 
 
@@ -78,11 +91,38 @@ def preprocess_replay(x):
 
 
 
+# https://github.com/YeWR/EfficientZero/blob/main/core/storage.py
+class QueueStorage(object):
+    def __init__(self, threshold=15, size=20):
+        """Queue storage
+        Parameters
+        ----------
+        threshold: int
+            if the current size if larger than threshold, the data won't be collected
+        size: int
+            the size of the queue
+        """
+        self.threshold = threshold
+        self.queue = Queue(maxsize=size)
+
+    def push(self, batch):
+        if self.queue.qsize() <= self.threshold:
+            self.queue.put(batch)
+
+    def pop(self):
+        if self.queue.qsize() > 0:
+            return self.queue.get()
+        else:
+            return None
+
+    def __len__(self):
+        return self.queue.qsize()
 
 
 
+@ray.remote
 class PrioritizedReplay_nSteps_Sqrt(object):
-    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, prefetch_cap=8, alpha=0.5, beta=0.5):
+    def __init__(self, capacity, final_beta=1.0, initial_beta=0.4, total_steps=40000, alpha=0.5, beta=0.5):
         self.capacity = capacity
         self.memory = deque([],maxlen=capacity)
         self.total_steps=total_steps
@@ -90,7 +130,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         self.alpha=alpha
         self.beta=beta
         
-        
+    
         self.free()
         
 
@@ -98,6 +138,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         """Save a transition"""
         self.memory.append(Transition(*args))
         self.n+=1
+        self.priority[self.n] = self.max_priority()
     
 
     def prioritize(self, batch_size, seq_len, step):
@@ -127,11 +168,11 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         for idx in idxs:
             batch = Transition(*zip(*list([self.memory[int(i+idx)] for i in range(max(seq_len+1,5+1))])))
             
-            states.append(torch.stack(batch.state).squeeze(1).cuda())
+            states.append(torch.stack(batch.state).squeeze(1))
             
-            rewards.append(torch.stack(batch.reward).cuda())
-            action.append(torch.stack(batch.action).cuda())
-            c_flag.append((~torch.stack(batch.c_flag).cuda()).float())
+            rewards.append(torch.stack(batch.reward))
+            action.append(torch.stack(batch.action))
+            c_flag.append((~torch.stack(batch.c_flag)).float())
         
 
         states = torch.stack(states)
@@ -142,7 +183,7 @@ class PrioritizedReplay_nSteps_Sqrt(object):
         rewards = torch.stack(rewards)
         action = torch.stack(action)
         c_flag = torch.stack(c_flag)
-        is_ws = is_ws.cuda()
+        is_ws = is_ws
             
         
         return states, next_states, rewards, action, c_flag, idxs, is_ws
@@ -183,3 +224,73 @@ class PrioritizedReplay_nSteps_Sqrt(object):
 
     def __len__(self):
         return len(self.memory)
+
+    def getlen(self):
+        return len(self.memory)
+
+
+
+@ray.remote#(num_gpus=0.125)
+class ParallelBuffer(Hypers):
+    def __init__(self, buffer, storage, batch_size):
+        super().__init__()
+        
+
+    def run(self):
+        #print(f"STARTED WORKER RUN")
+        
+        while True:
+            
+            if len(self.storage) < 4 and ray.get(self.buffer.getlen.remote()) > 1999:
+                try:
+                    
+                    #print(f"SAMPLING DATA")
+                    
+                    batch = ray.get(self.buffer.sample.remote(5, self.batch_size, 0))
+                    
+                    #print(f"Sampled: {batch[0].shape, batch[1].shape, batch[2].shape}")
+                    #print(f"Sampled: {batch[0].device}")
+                    
+                    self.storage.push(batch) # REQUIRES DATA STORAGE ON CPU 
+                    
+                except Exception as e:
+                    print('Data is Deleted...')
+                    print(f"{e}")
+                    time.sleep(0.1)
+
+
+@ray.remote(num_gpus=0.125)
+class MCTS_Buffer(Hypers):
+    def __init__(self, buffer, buffer_storage, storage, mcts, n_actions, model):
+        super().__init__()
+        
+        #self.model=EfficientZero(n_actions).cuda()
+
+    #def load_weights(self, model):
+    #    self.model.load_state_dict(model.state_dict())
+        
+    def run(self):
+        
+        while True:
+            
+            if len(self.buffer_storage) > 0 and len(self.storage) < 4:
+                try:
+                    
+                    #print(f"SAMPLING DATA")
+                    
+                    batch = self.buffer_storage.pop()
+                    states, next_states, rewards, action, c_flag, idxs, is_ws = batch
+                    
+                    value_mcts, improved_policy, _ = self.mcts(self.model, states[:,0][:,None].cuda())
+                    
+                    print(f"WEIGHTS {self.model.ac.policy[2].mlp[3].weight.sum()}")
+
+                    batch = states, next_states, rewards, action, c_flag, idxs, is_ws, value_mcts.cpu(), improved_policy.cpu()
+                    
+                    self.storage.push(batch) 
+                    
+                except Exception as e:
+                    print('GPU Data is Deleted...')
+                    print(f"{e}")
+                    time.sleep(0.1)
+
