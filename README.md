@@ -1,10 +1,17 @@
 Unofficial code for "Bigger, Better, Faster: Human-level Atari with human-level efficiency". arXiv: https://arxiv.org/pdf/2305.19452.pdf
 
-Possible replication of the Atari 100k results.
+Possible replication of the Atari-100k results.
+
+Replica is at: bbf.ipynb
 
 <hr>
 
 Current results:
+results.csv
+
+<hr>
+
+Old results:
 
 Alien - 1184.4 IQM - 1184.5 Mean Score (seed 7779) n-1
 
@@ -33,26 +40,6 @@ Gopher - 200.0 IQM - 250.0 Mean Score (Seed 8264) n-1
 Hero - 3020.0 IQM - 3040.0 Mean Score (Seed 8048) n-1
 
 Jamesbond - 299.0 IQM - 427.5 Mean Score (Seed 8052) n-1
-
-Kangaroo -  IQM -  Mean Score (Seed 8712) n-1
-
-Krull - IQM - Mean Score (Seed 8494)
-
-KungFuMaster - IQM - Mean Score (Seed 8277)
-
-MsPacman - IQM - Mean Score (Seed 8281)
-
-Pong - IQM - Mean Score (Seed 8289)
-
-PrivateEye - IQM - Mean Score (Seed 8291)
-
-Qbert - IQM - Mean Score (Seed 8953)
-
-Roadrunner - IQM - Mean Score (Seed 8736)
-
-Seaquest - IQM - Mean Score (Seed 8082)
-
-UpNDown - IQM - Mean Score (Seed 8098)
 
 
 Experiments were runned over 100 eval seeds for 1 training seed.
