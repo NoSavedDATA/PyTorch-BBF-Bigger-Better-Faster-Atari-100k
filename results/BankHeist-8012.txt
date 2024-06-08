@@ -1,0 +1,3 @@
+ Scores Mean 267.7
+ Inter Quantile Mean 270.0
+ Inter Quantile STD 0.0

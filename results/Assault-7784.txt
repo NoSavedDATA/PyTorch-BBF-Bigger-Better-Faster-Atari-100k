@@ -1,3 +1,3 @@
- Scores Mean 2047.26
- Inter Quantile Mean 1995.86
- Inter Quantile STD 453.6222473218285
+ Scores Mean 720.44
+ Inter Quantile Mean 714.16
+ Inter Quantile STD 19.051337732236945
