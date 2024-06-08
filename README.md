@@ -2,12 +2,16 @@ Unofficial code for "Bigger, Better, Faster: Human-level Atari with human-level 
 
 Possible replication of the Atari-100k results.
 
-Replica is at: bbf.ipynb
+Replica is at:
+- bbf.ipynb
+
+To visualize the atari environment on iference mode, first train a network to extract it's checkpoint, then run:
+- infer.ipynb
 
 <hr>
 
 Current results:
-results.csv
+- results.csv
 
 <hr>
 
