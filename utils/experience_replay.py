@@ -72,7 +72,7 @@ def preprocess_replay(x):
     batch, seq, cnn_shape = x.shape[0], x.shape[1], x.shape[-3:]
     x = crop_aug(x.view(-1, *cnn_shape)).view(batch, seq, *cnn_shape)
 
-    noise = 1 + (0.05*torch.rand_like(x).clip(-2.0,2.0))
+    noise = 1 + (0.05*torch.randn_like(x).clip(-2.0,2.0))
     return x * noise
 
 
