@@ -61,5 +61,6 @@ Install my library at: https://github.com/NoSavedDATA/NoSavedDATA
 
 Also:
 ```
-pip install gymnasium[accept-rom-license, atari]
+pip install gymnasium[atari]==0.29.1
+pip install gymnasium[accept-rom-license]==0.29.1
 ```
