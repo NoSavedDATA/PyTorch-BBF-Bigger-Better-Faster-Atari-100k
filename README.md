@@ -61,6 +61,7 @@ Install my library at: https://github.com/NoSavedDATA/NoSavedDATA
 
 Also:
 ```
+pip install numpy==1.24.0
 pip install gymnasium[atari]==0.29.1
 pip install gymnasium[accept-rom-license]==0.29.1
 ```
